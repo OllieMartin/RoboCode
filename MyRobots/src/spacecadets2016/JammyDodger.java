@@ -1,4 +1,6 @@
 package spacecadets2016;
+import java.awt.Color;
+
 import robocode.HitByBulletEvent;
 import robocode.HitWallEvent;
 import robocode.Robot;
@@ -7,25 +9,30 @@ import robocode.ScannedRobotEvent;
 public class JammyDodger extends Robot {
 
 	double lastBearing;
+	boolean onWall;
+	double latestDistance;
 	
 	/**
 	 * run: Test's default behavior
 	 */
 	@Override
 	public void run() {
+		
+		
+		
 		// Initialization of the robot should be put here
 
 		// After trying out your robot, try uncommenting the import at the top,
 		// and the next line:
 
-		// setColors(Color.red,Color.blue,Color.green); // body,gun,radar
+		setColors(Color.getHSBColor(57, 18, 10),Color.red,Color.red); // body,gun,radar
 
 		// Robot main loop
 		while(true) {
 			// Replace the next 4 lines with any behavior you would like
 			if (getOthers() > 1) {
 				//basicEvade();
-				basicSeek();
+				basicEvade();
 			} else {
 				basicSeek();
 			}
@@ -37,19 +44,15 @@ public class JammyDodger extends Robot {
 	private void basicSeek() {
 		//ahead(100);
 		turnGunRight(360);
-		ahead(100);
+		ahead(latestDistance /2);
 		//back(100);
 		//turnGunRight(360);
 	}
 	
 	private void basicEvade() {
-		turnRight(90);
-		ahead(1000);
-		turnRight(90);
-		turnGunRight(360);
-		back(1000);
-		turnGunRight(360);
-		turnRight(45);
+		turnGunRight(90);
+		turnRight(20);
+		ahead(latestDistance/10);
 	}
 	
 	
@@ -60,6 +63,7 @@ public class JammyDodger extends Robot {
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e) {
 		// Replace the next line with any behavior you would like
+		latestDistance = e.getDistance();
 		lastBearing = e.getBearing();
 		if (e.getDistance() <= 100) {
 			fire(5);
@@ -76,11 +80,14 @@ public class JammyDodger extends Robot {
 			//turnRight(this.getHeading() + e.getBearing());
 			//ahead(100);
 			fire(1);
+			//rapidFire(1,2);
 		}
+		if (!(getOthers() > 1)) {
 		if (e.getBearing() > 0) {
-			turnRight(45);
-		} else if (e.getDistance() < 0) {
-			turnRight(-45);
+			turnRight(45 + 45 * Math.abs(Math.sin(e.getDistance())));
+		} else if (e.getBearing() < 0) {
+			turnLeft(45 + 45* Math.abs(Math.sin(e.getDistance())));
+		}
 		}
 		
 	}
@@ -90,10 +97,12 @@ public class JammyDodger extends Robot {
 	 */
 	@Override
 	public void onHitByBullet(HitByBulletEvent e) {
+		if (!onWall) {
 		// Replace the next line with any behavior you would like
 		//turnRight(this.getHeading() + e.getBearing() + 45);
-		back(100);
-		turnRight(22);
+			turnRight(Math.random() * 45);
+			ahead(Math.random()*50 + 50);
+		}
 		
 	}
 	
@@ -106,9 +115,16 @@ public class JammyDodger extends Robot {
 	 */
 	@Override
 	public void onHitWall(HitWallEvent e) {
+		if (!onWall) {
+		onWall = true;
 		// Replace the next line with any behavior you would like
 		reAlign();
+		if (getOthers() > 1) {
+			ahead(100);
+		}
 		ahead(100);
+		onWall = false;
+		}
 	}	
 	
 }
