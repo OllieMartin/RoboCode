@@ -1,16 +1,24 @@
 package spacecadets2016;
 import java.awt.Color;
+import java.util.HashMap;
+import java.util.Map;
 
 import robocode.HitByBulletEvent;
+import robocode.HitRobotEvent;
 import robocode.HitWallEvent;
 import robocode.Robot;
+import robocode.Rules;
 import robocode.ScannedRobotEvent;
 
 public class JammyDodger extends Robot {
 
+	private Map<String,Location> enemyLocations;
+	Location dangerZone = null;
+	
 	double lastBearing;
 	boolean onWall;
 	double latestDistance;
+	boolean enabled;
 	
 	/**
 	 * run: Test's default behavior
@@ -18,7 +26,27 @@ public class JammyDodger extends Robot {
 	@Override
 	public void run() {
 		
+		enemyLocations = new HashMap<String,Location>();
 		
+		setColors(Color.black, Color.black, Color.black);
+		if (getX() < getBattleFieldWidth()/2) {
+			turnRight(360 - getHeading() + 90);
+			ahead(getBattleFieldWidth()/2 - getX());
+		}
+		else if (getX() > getBattleFieldWidth()/2) {
+			turnRight(360 - getHeading() - 90);
+			ahead(getX() - getBattleFieldWidth()/2);
+		}
+		if (getY() < getBattleFieldHeight()/2) {
+			turnRight(360 - getHeading());
+			ahead(getBattleFieldHeight()/2 - getY());
+		}
+		else if (getY() > getBattleFieldHeight()/2) {
+			turnRight(360 - getHeading() - 180);
+			ahead(getY() - getBattleFieldHeight()/2);
+		}
+		
+		enabled = true;
 		
 		// Initialization of the robot should be put here
 
@@ -51,17 +79,52 @@ public class JammyDodger extends Robot {
 	
 	private void basicEvade() {
 		turnGunRight(90);
-		turnRight(20);
-		ahead(latestDistance/10);
+		int aheadVal = 100;
+		if (dangerZone == null) {
+			turnRight(90*Math.sin(latestDistance));
+		} else {
+			if (Math.abs(getX() - dangerZone.x) < 200 && Math.abs(getY() - dangerZone.y) < 200) {
+				turnRight(dangerZone.getBearing(getX(), getY(), getHeading()) + 180);
+				aheadVal = aheadVal + 100;
+			} else {
+				turnRight(90*Math.sin(latestDistance));
+			}
+		}
+		ahead(aheadVal);
 	}
 	
-	
+	private Location getDangerZone() {
+		Location dangerZone = null;
+		
+		double avX = 0;
+		double avY = 0;
+		int counter = 0;
+		
+		for (Location l : enemyLocations.values()) {
+			avX = avX + l.x;
+			avY = avY + l.y;
+			counter++;
+		}
+		
+		avX = avX/counter;
+		avY = avY/counter;
+		
+		dangerZone = new Location(avX,avY);
+		
+		return dangerZone;
+	}
 
 	/**
 	 * onScannedRobot: What to do when you see another robot
 	 */
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e) {
+		enemyLocations.put(e.getName(), new Location(getRadarHeading()/360 * 2*Math.PI, getX(), getY(), e.getDistance()));
+		dangerZone = getDangerZone();
+		System.out.println(e.getName() + " at x: " + enemyLocations.get(e.getName()).x);
+		if (!enabled) {
+			return;
+		}
 		// Replace the next line with any behavior you would like
 		latestDistance = e.getDistance();
 		lastBearing = e.getBearing();
@@ -69,25 +132,25 @@ public class JammyDodger extends Robot {
 			fire(5);
 		} else if (e.getDistance() <= 150) {
 			fire(4);
-		} else if (e.getDistance() <= 200) {
+		} else if (e.getDistance() <= 150) {
 			fire(3);
 			//turnRight(this.getHeading() + e.getBearing());
 		} else if (e.getDistance() <= 300) {
 			//turnRight(this.getHeading() + e.getBearing());
 			//ahead(100);
 			fire(2);
-		} else {
+		} else if (e.getDistance() <= getBattleFieldWidth()/2){
 			//turnRight(this.getHeading() + e.getBearing());
 			//ahead(100);
 			fire(1);
 			//rapidFire(1,2);
 		}
 		if (!(getOthers() > 1)) {
-		if (e.getBearing() > 0) {
-			turnRight(45 + 45 * Math.abs(Math.sin(e.getDistance())));
-		} else if (e.getBearing() < 0) {
-			turnLeft(45 + 45* Math.abs(Math.sin(e.getDistance())));
-		}
+			if (e.getBearing() > 0) {
+				turnRight(45 + 45 * Math.abs(Math.sin(e.getDistance())));
+			} else if (e.getBearing() < 0) {
+				turnLeft(45 + 45* Math.abs(Math.sin(e.getDistance())));
+			}
 		}
 		
 	}
@@ -97,6 +160,9 @@ public class JammyDodger extends Robot {
 	 */
 	@Override
 	public void onHitByBullet(HitByBulletEvent e) {
+		if (!enabled) {
+			return;
+		}
 		if (!onWall) {
 		// Replace the next line with any behavior you would like
 		//turnRight(this.getHeading() + e.getBearing() + 45);
@@ -107,7 +173,18 @@ public class JammyDodger extends Robot {
 	}
 	
 	public void reAlign() {
-		turnRight(this.getHeading() + lastBearing);
+		if (!enabled) {
+			return;
+		}
+		turnGunRight(this.getHeading() + lastBearing);
+	}
+	
+	public void onHitEnemy(HitRobotEvent e) {
+		
+		turnRight(this.getHeading()+e.getBearing());
+		fire(Rules.MAX_BULLET_POWER);
+		back(10);
+		
 	}
 	
 	/**
@@ -115,10 +192,14 @@ public class JammyDodger extends Robot {
 	 */
 	@Override
 	public void onHitWall(HitWallEvent e) {
+		if (!enabled) {
+			return;
+		}
 		if (!onWall) {
 		onWall = true;
 		// Replace the next line with any behavior you would like
-		reAlign();
+		turnRight(e.getBearing() + 180 + Math.random()* 45);
+		//reAlign();
 		if (getOthers() > 1) {
 			ahead(100);
 		}
