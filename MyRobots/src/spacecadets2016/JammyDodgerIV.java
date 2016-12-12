@@ -82,8 +82,9 @@ public class JammyDodgerIV extends AdvancedRobot {
 				setTurnRight((dangerZone.getBearing(getX(), getY(), getHeading()) + 180)/2);
 				aheadVal = aheadVal + 100;
 			} else {
-				if (getX() > getBattleFieldWidth() - 100 || getY() > getBattleFieldHeight() - 100 || getX() < 100 || getY() < 100) {
-					setTurnLeft(90 + 90*Math.sin(latestDistance));
+				if (getX() > getBattleFieldWidth() - 50 || getY() > getBattleFieldHeight() - 50 || getX() < 50 || getY() < 50) {
+					//setTurnLeft(90 + 90*Math.sin(latestDistance));
+					reAlign();
 				} else {
 					setTurnRight(90*Math.sin(latestDistance));
 				}
