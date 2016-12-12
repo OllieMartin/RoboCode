@@ -4,10 +4,19 @@ public class Location {
 
 	public double x;
 	public double y;
+	public double d;
+	public double h;
+	public double v;
 	
 	public Location(double x, double y) {
 		this.x = x;
 		this.y = y;
+	}
+	
+	public Location(double radarHeadingRadians, double myX, double myY, double distance, double enemyHeading, double enemyVelocity) {
+		this(radarHeadingRadians, myX, myY, distance);
+		h = enemyHeading;
+		v = enemyVelocity;
 	}
 	
 	public Location(double radarHeadingRadians, double myX, double myY, double distance) {
@@ -35,6 +44,8 @@ public class Location {
 			x = myX - hd;
 			y = myY + vd;
 		}
+		
+		d = distance;
 		
 	}
 	
@@ -69,7 +80,7 @@ public class Location {
 			bearing = (Math.PI/2 + Math.PI + Math.atan(vd/hd))/(2*Math.PI) *360;
 		}
 		
-		return bearing;
+		return heading - bearing;
 	}
 	
 }
