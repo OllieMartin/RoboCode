@@ -11,7 +11,7 @@ import robocode.HitWallEvent;
 import robocode.Rules;
 import robocode.ScannedRobotEvent;
 
-public class JammyDodgerIII extends AdvancedRobot {
+public class JammyDodgerIV extends AdvancedRobot {
 
 	private Map<String,Location> enemyLocations;
 	Location dangerZone = null;
@@ -28,7 +28,7 @@ public class JammyDodgerIII extends AdvancedRobot {
 	@Override
 	public void run() {
 		
-		System.out.println("Jammy Dodger Mark III - Loading");
+		System.out.println("Jammy Dodger Mark IV - Loading");
 		
 		setAdjustRadarForGunTurn(true);
 		setAdjustRadarForRobotTurn(true);
@@ -79,10 +79,15 @@ public class JammyDodgerIII extends AdvancedRobot {
 			setTurnRight(90*Math.sin(latestDistance));
 		} else {
 			if (Math.abs(getX() - dangerZone.x) < 200 && Math.abs(getY() - dangerZone.y) < 200) {
-				setTurnRight(dangerZone.getBearing(getX(), getY(), getHeading()) + 180);
+				setTurnRight((dangerZone.getBearing(getX(), getY(), getHeading()) + 180)/2);
 				aheadVal = aheadVal + 100;
 			} else {
-				setTurnRight(90*Math.sin(latestDistance));
+				if (getX() > getBattleFieldWidth() - 100 || getY() > getBattleFieldHeight() - 100 || getX() < 100 || getY() < 100) {
+					setTurnLeft(90 + 90*Math.sin(latestDistance));
+				} else {
+					setTurnRight(90*Math.sin(latestDistance));
+				}
+				
 			}
 		}
 		setAhead(aheadVal);
@@ -158,8 +163,10 @@ public class JammyDodgerIII extends AdvancedRobot {
 			fire(1);
 			//rapidFire(1,2);
 		}*/
-		if (!(getEnergy() < 20) || e.getEnergy() < 20) {
-			fireScanned(enemyLocations.get(e.getName()),e.getBearing());
+		if ((getOthers() > 1)|| e.getDistance() < 300) {
+			if (!(getEnergy() < 20) || e.getEnergy() < 20) {
+				fireScanned(enemyLocations.get(e.getName()),e.getBearing());
+			}
 		}
 		if (!(getOthers() > 1)) {
 			if (e.getBearing() > 0) {
