@@ -2,7 +2,6 @@ package spacecadets2016;
 import java.awt.Color;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.PrintStream;
@@ -39,22 +38,12 @@ public class JammyDodgerV extends AdvancedRobot {
 	boolean retreat;
 	double toTurn;
 	double toMove;
-	boolean noTurn;
 	double hits;
 	double  misses;
 	double averageHitDistance;
 	int opponents;
 	double wallTurn;
 
-	boolean normal;
-	boolean peek; // Don't turn if there's a robot there
-	double moveAmount; // How much to move
-
-	final static int TRIGGER = 1000;
-
-	/**
-	 * run: Test's default behavior
-	 */
 	@SuppressWarnings("unchecked")
 	@Override
 	public void run() {
@@ -66,21 +55,19 @@ public class JammyDodgerV extends AdvancedRobot {
 		File file = getDataFile("output.dat");
 		try {
 			FileInputStream stream = new FileInputStream(file);
-
-			//BufferedReader br = new BufferedReader(stream);
 			ObjectInputStream ois = new ObjectInputStream(stream);
 			enemyData = (Map<String, RoboHitData>) ois.readObject();
 			ois.close();
 
 		} catch (IOException e) {
-			System.out.println("Could not load previous file!");
+			System.out.println("Could not load data file!");
 		} catch (ClassNotFoundException e) {
 			System.out.println("ClassNotFound!");
 		}
 
-		/*setAdjustRadarForGunTurn(true);
+		setAdjustRadarForGunTurn(true);
 		setAdjustRadarForRobotTurn(true);
-		setAdjustGunForRobotTurn(true);*/
+		setAdjustGunForRobotTurn(true);
 		setBulletColor(Color.red);
 		enemyLocations = new HashMap<String,Location>();
 		bulletTargets = new HashMap<Bullet,String>();
@@ -91,49 +78,17 @@ public class JammyDodgerV extends AdvancedRobot {
 
 		opponents = getOthers();
 
-		if (getOthers() > TRIGGER) {
-			// Initialize moveAmount to the maximum possible for this battlefield.
-			moveAmount = Math.max(getBattleFieldWidth(), getBattleFieldHeight());
-			// Initialize peek to false
-			peek = false;
-
-			// turnLeft to face a wall.
-			// getHeading() % 90 means the remainder of
-			// getHeading() divided by 90.
-			turnLeft(getHeading() % 90);
-			ahead(moveAmount);
-			// Turn the gun to turn right 90 degrees.
-			peek = true;
-			turnGunRight(90);
-			turnRight(90);
-		}
-
 		// Robot main loop
 		while(true) {
-
-			if (getOthers() <= TRIGGER) {
-				if (!normal) {
-					normal = true;
-					turnRight(90);
-					ahead(100);
-				}
-
-				setAdjustRadarForGunTurn(true);
-				setAdjustRadarForRobotTurn(true);
-				setAdjustGunForRobotTurn(true);
-				if (getEnergy() > 30) {
-					if (getOthers() > 1) {
-						basicEvade();
-						//basicSeek();
-					} else {
-						basicSeek();
-					}
-				} else {
-					System.out.println("[ALERT] Energy Low - Evasion activated");
+			if (getEnergy() > 30) {
+				if (getOthers() > 1) {
 					basicEvade();
+				} else {
+					basicSeek();
 				}
 			} else {
-				wallSkim();
+				System.out.println("[ALERT] Energy Low - Evasion activated");
+				basicEvade();
 			}
 		}
 	}
@@ -154,26 +109,6 @@ public class JammyDodgerV extends AdvancedRobot {
 			e.printStackTrace();
 		}
 	}
-
-
-	/*@Override
-	public void onWin(WinEvent event) {
-		File file = getDataFile("output.dat");
-		try {
-			RobocodeFileOutputStream stream = new RobocodeFileOutputStream(file);
-			PrintStream ps = new PrintStream(stream);
-			ps.print(enemyData);
-
-			ps.close();
-			System.out.println("SAVED!");
-			System.out.println(file.getAbsolutePath());
-
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-	}*/
-
 
 	@Override
 	public void onBulletHit(BulletHitEvent event) {
@@ -214,18 +149,6 @@ public class JammyDodgerV extends AdvancedRobot {
 		super.onBulletHitBullet(event);
 	}
 
-	private void wallSkim() {
-		// Look before we turn when ahead() completes.
-		peek = true;
-		// Move up the wall
-		setAhead(moveAmount);
-		// Don't look now
-		peek = false;
-		// Turn to the next wall
-		setTurnRight(90);
-		execute();
-	}
-
 	private void basicSeek() {
 		//ahead(100);
 		turnRadarRight(360);
@@ -235,11 +158,10 @@ public class JammyDodgerV extends AdvancedRobot {
 			setAhead(toMove);
 			setTurnRight(toTurn);
 		} else {
-			//setTurnRight(20);
 			setAhead(toMove);
 			retreat = false;
 		}
-		
+
 		if (!onWall) {
 			if (getX() > getBattleFieldWidth()-(getBattleFieldWidth()/15) && getHeading() >= 0 && getHeading() <= 180) {
 				toTurn += toTurn/2;
@@ -276,22 +198,22 @@ public class JammyDodgerV extends AdvancedRobot {
 	private void basicEvade() {
 		setTurnRadarRight(90);
 		int aheadVal = 100;
-		if (!noTurn) {
-			if (dangerZone == null) {
-				toTurn = toTurn + (90*Math.random());
-			} else {
-				if (Math.abs(getX() - dangerZone.x) < 200 && Math.abs(getY() - dangerZone.y) < 200) {
-					toTurn = (dangerZone.getBearing(getX(), getY(), getHeading()) + 180);
-					aheadVal = aheadVal + 100;
-				} else {
-					toTurn = toTurn + (90*Math.random());
-				}
 
+		if (dangerZone == null) {
+			toTurn = toTurn + (90*Math.random());
+		} else {
+			if (Math.abs(getX() - dangerZone.x) < 200 && Math.abs(getY() - dangerZone.y) < 200) {
+				toTurn = (dangerZone.getBearing(getX(), getY(), getHeading()) + 180);
+				aheadVal = aheadVal + 100;
+			} else {
+				toTurn = toTurn + (90*Math.random());
 			}
-			toMove = toMove + aheadVal;
-			setTurnRight(toTurn);
-			setAhead(toMove);
+
 		}
+		toMove = toMove + aheadVal;
+		setTurnRight(toTurn);
+		setAhead(toMove);
+
 		if (!onWall) {
 			if (getX() > getBattleFieldWidth()-(getBattleFieldWidth()/4) && getHeading() >= 0 && getHeading() <= 180) {
 				setTurnRight(90);
@@ -340,21 +262,15 @@ public class JammyDodgerV extends AdvancedRobot {
 	}
 
 	private void fireScanned(Location l, double bearing, String name) {
+
 		double airTime = l.d/(20 - 3*Math.min(400/l.d,3));
-		//double travelDistance = l.v * airTime;
+
 		setAdjustRadarForGunTurn(true);
-		double fX;
-		double fY;
-		
-		fX = l.x + l.v * airTime * Math.sin(Math.toRadians(l.h)) - getX();
-		fY = l.y + l.v * airTime * Math.cos(Math.toRadians(l.h)) - getY();
-		
-		Location fL = new Location(fX,fY);
-		//turnGunRight(getHeading() - getGunHeading() + bearing);
-		double absoluteBearing = getHeadingRadians() + Math.toRadians(bearing);
-		setTurnGunRightRadians(Utils.normalRelativeAngle(absoluteBearing - 
-			    getGunHeadingRadians() + (l.v * Math.sin(Math.toRadians(l.h) - 
-			    absoluteBearing) / airTime)));
+
+		double absBearing = getHeadingRadians() + Math.toRadians(bearing);
+		setTurnGunRightRadians(Utils.normalRelativeAngle(absBearing - 
+				getGunHeadingRadians() + (l.v * Math.sin(Math.toRadians(l.h) - 
+						absBearing) / airTime)));
 		waitFor(new GunTurnCompleteCondition(this));
 		Bullet b = fireBullet(Math.min(400/l.d,3));
 
@@ -362,31 +278,22 @@ public class JammyDodgerV extends AdvancedRobot {
 
 	}
 
-	/**
-	 * onScannedRobot: What to do when you see another robot
-	 */
 	@Override
 	public void onScannedRobot(ScannedRobotEvent e) {
+
 		enemyLocations.put(e.getName(), new Location(getRadarHeading()/360 * 2*Math.PI, getX(), getY(), e.getDistance()));
 		if (enemyData.get(e.getName()) == null) {
 			enemyData.put(e.getName(), new RoboHitData());
 		}
+
 		dangerZone = getDangerZone();
 		if (!enabled) {
 			return;
 		}
-		// Replace the next line with any behavior you would like
+
 		latestDistance = e.getDistance();
 		lastBearing = e.getBearing();
 
-		if (getOthers() > TRIGGER) {
-			fire(2);
-			if (peek) {
-				scan();
-			}
-			return;
-		}
-		
 		if (!(getEnergy() < 5) || e.getEnergy() < 20) {
 			if (enemyData.get(e.getName()).getAccuracy() < 20) {
 				if (e.getDistance() < enemyData.get(e.getName()).getAverageHitDistance() + 20) {
@@ -400,8 +307,7 @@ public class JammyDodgerV extends AdvancedRobot {
 				fireScanned(enemyLocations.get(e.getName()),e.getBearing(), e.getName());
 			}
 		}
-		//if (!(getOthers() > 1)) {
-		//toTurn = toTurn + (45* moveDirection + 45*Math.random());
+
 		moveDirection *= -1;
 		if (e.getBearing() > 0) {
 			toTurn = toTurn + (90 + 45*Math.random());
@@ -411,28 +317,16 @@ public class JammyDodgerV extends AdvancedRobot {
 		//}
 		if (e.getEnergy() > getEnergy() + 10 && e.getDistance() < 100) {
 			System.out.println("[ALERT] Scanned robot has superior energy levels & is near - Retreat!");
-			//back(200);
-			
-			
-			//toMove = -200;
+
 			toMove *= -1;
 			retreat = true;
 		}
 
 	}
 
-	/**
-	 * onHitByBullet: What to do when you're hit by a bullet
-	 */
 	@Override
 	public void onHitByBullet(HitByBulletEvent e) {
 		System.out.println("[ALERT] Hit by bullet");
-		if (getOthers() >TRIGGER ) {
-			return;
-		}
-		if (!enabled) {
-			return;
-		}
 		if (!onWall) {
 			// Replace the next line with any behavior you would like
 			//turnRight(this.getHeading() + e.getBearing() + 45);
@@ -452,16 +346,6 @@ public class JammyDodgerV extends AdvancedRobot {
 
 	public void onHitEnemy(HitRobotEvent e) {
 
-		if (getOthers() > TRIGGER) {
-			if (e.getBearing() > -90 && e.getBearing() < 90) {
-				back(100);
-			} // else he's in back of us, so set ahead a bit.
-			else {
-				ahead(100);
-			}
-			return;
-		}
-
 		if ((getOthers() > 1 && getEnergy()>50) || getOthers() == 1) {
 			turnGunRight(this.getHeading() - this.getGunHeading() + e.getBearing());
 			setFire(Rules.MAX_BULLET_POWER);
@@ -470,33 +354,14 @@ public class JammyDodgerV extends AdvancedRobot {
 
 	}
 
-	/**
-	 * onHitWall: What to do when you hit a wall
-	 */
 	@Override
 	public void onHitWall(HitWallEvent e) {
 		System.out.println("[INFO] Collision with wall");
-		if (getOthers() > TRIGGER) {
-			return;
-		}
 		if (!enabled) {
 			return;
 		}
 		onWall = true;
-		/*if (!onWall) {
-		onWall = true;
-		// Replace the next line with any behavior you would like
-		wallTurn = (e.getBearing() + 180 + Math.random()* 45);
-		//waitFor(new TurnCompleteCondition(this));
-		noTurn = true;
-		//reAlign();
-		if (getOthers() > 1) {
-			toMove = toMove + (100);
-		}
-		setAhead(toMove);
-		toMove = 0;
-		onWall = false;
-		}*/
+
 		toTurn += 90;
 		toMove = 100;
 	}	
