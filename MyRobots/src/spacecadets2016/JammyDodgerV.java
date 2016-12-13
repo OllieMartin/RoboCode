@@ -151,7 +151,7 @@ public class JammyDodgerV extends AdvancedRobot {
 
 	private void basicSeek() {
 		//ahead(100);
-		turnRadarRight(360);
+		setTurnRadarRight(360);
 
 		if (!retreat) {
 			toMove = toMove + latestDistance/2;
@@ -193,6 +193,12 @@ public class JammyDodgerV extends AdvancedRobot {
 		if (getHitWallEvents().size() == 0) {
 			onWall = false;
 		}
+		
+		if (onWall) {
+			setTurnRight(20);
+			setAhead(20);
+			execute();
+		}
 	}
 
 	private void basicEvade() {
@@ -213,24 +219,34 @@ public class JammyDodgerV extends AdvancedRobot {
 		toMove = toMove + aheadVal;
 		setTurnRight(toTurn);
 		setAhead(toMove);
+		
+		boolean wallMoved = false;
+		double wallRight = 0;
 
 		if (!onWall) {
 			if (getX() > getBattleFieldWidth()-(getBattleFieldWidth()/4) && getHeading() >= 0 && getHeading() <= 180) {
-				setTurnRight(90);
+				wallRight += 90;
+				wallMoved = true;
 			} else if (getX() > getBattleFieldWidth()-(getBattleFieldWidth()/4) ) {
 				setTurnRight(0);
-			} else if (getX() < (getBattleFieldWidth()/4) && getHeading() >= 180 && getHeading() <= 360) {
-				setTurnRight(90);
+			} if (getX() < (getBattleFieldWidth()/4) && getHeading() >= 180 && getHeading() <= 360) {
+				wallRight += 90;
+				wallMoved = true;
 			} else if(getX() < (getBattleFieldWidth()/4) ) {
 				setTurnRight(0);
-			} else if (getY() > getBattleFieldHeight()-(getBattleFieldHeight()/4) && (getHeading() >= 270 && getHeading() <= 360) || (getHeading() >= 0 && getHeading() <= 90)) {
-				setTurnRight(90);
+			} if (getY() > getBattleFieldHeight()-(getBattleFieldHeight()/4) && (getHeading() >= 270 && getHeading() <= 360) || (getHeading() >= 0 && getHeading() <= 90)) {
+				wallRight += 90;
+				wallMoved = true;
 			} else if (getY() > getBattleFieldHeight()-(getBattleFieldHeight()/4)) {
 				setTurnRight(0);
-			} else if (getY() < (getBattleFieldHeight()/4) && (getHeading() >= 90 && getHeading() <= 270) ) {
-				setTurnRight(90);
+			} if (getY() < (getBattleFieldHeight()/4) && (getHeading() >= 90 && getHeading() <= 270) ) {
+				wallRight += 90;
+				wallMoved = true;
 			} else if (getY() < (getBattleFieldHeight()/4)){
 				setTurnRight(0);
+			}
+			if (wallMoved) {
+				setTurnRight(wallRight);
 			}
 		}
 		if (getHitWallEvents().size() == 0) {
@@ -362,7 +378,7 @@ public class JammyDodgerV extends AdvancedRobot {
 		}
 		onWall = true;
 
-		toTurn += 90;
+		toTurn += 95;
 		toMove = 100;
 	}	
 
